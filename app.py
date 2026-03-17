@@ -100,7 +100,7 @@ def extract_mantenedor(val):
 
 def is_closed(s):
     s = norm(str(s or ''))
-    return any(k in s for k in ['FECHA','CONCLU','EXECUT','FINALIZ','ENCERR','RESOLV'])
+    return any(k in s for k in ['FECHA','CONCLU','EXECUT','FINALIZ','ENCERR','RESOLV','APONTAMENTO'])
 
 def classify_status(s):
     n = norm(str(s or ''))
