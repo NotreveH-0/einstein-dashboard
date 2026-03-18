@@ -364,7 +364,11 @@ with tab_ger:
                           marker=dict(size=5, color='#f59e0b'), yaxis='y2')
         fig_p.add_hline(y=80, line_dash='dash', line_color='rgba(245,158,11,.4)', yref='y2',
                         annotation_text='80%', annotation_position='right')
-        fig_p.update_layout(**PT, height=320, barmode='group',
+        fig_p.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(family="Inter,sans-serif", color="#e8eaf0", size=12),
+            margin=dict(l=10, r=10, t=30, b=10),
+            height=320, barmode='overlay',
             yaxis2=dict(overlaying='y', side='right', range=[0,110],
                         ticksuffix='%', gridcolor='rgba(0,0,0,0)', title='% Acumulado'),
             legend=dict(orientation='h', y=1.1, font_size=10))
