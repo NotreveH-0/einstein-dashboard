@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import re, unicodedata, io
 
-st.set_page_config(page_title="Dashboard OMs – Einstein | Grupo GPS", page_icon="🔧", layout="wide")
+st.set_page_config(page_title="Gestão de OMs – Einstein | Grupo GPS", page_icon="🔧", layout="wide")
 
 SHEET_URL = st.secrets.get("SHEET_URL", "") if hasattr(st, "secrets") else ""
 
@@ -16,7 +16,7 @@ PT = dict(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
           font=dict(family="Inter,sans-serif", color="#e8eaf0", size=12),
           margin=dict(l=10, r=10, t=30, b=10),
           xaxis=dict(gridcolor="rgba(255,255,255,0.06)"),
-          yaxis=dict(gridcolor="rgba(255,255,255,0.06)", zeroline=False))
+          )
 
 st.markdown("""
 <style>
@@ -265,7 +265,7 @@ st.markdown("""
   <div>
     <span style='background:#3b82f6;color:#fff;font-size:11px;font-weight:600;
                  letter-spacing:1.5px;padding:4px 10px;border-radius:4px;margin-right:10px'>GPS</span>
-    <span style='font-size:15px;font-weight:500'>Dashboard de OMs Fechadas — Contrato Einstein</span>
+    <span style='font-size:15px;font-weight:500'>Gestão de OMs — Contrato Einstein</span>
   </div>
   <div style='font-size:12px;color:#8b92a5'>Grupo GPS · Análise Operacional</div>
 </div>""", unsafe_allow_html=True)
@@ -340,8 +340,8 @@ with tab_ger:
                        color='n', color_continuous_scale=[[0,'#1e3a5f'],[1,'#3b82f6']],
                        labels={'unidade':'','n':'OMs'})
         fig_h.update_traces(textposition='outside', textfont_size=11, marker_line_width=0)
-        fig_h.update_layout(**PT, showlegend=False, coloraxis_showscale=False,
-                            height=320, yaxis=dict(gridcolor='rgba(0,0,0,0)', tickfont_size=10))
+        fig_h.update_layout(**PT, showlegend=False, coloraxis_showscale=False, height=320)
+        fig_h.update_yaxes(gridcolor='rgba(0,0,0,0)', tickfont_size=10)
         fig_h.update_xaxes(gridcolor='rgba(255,255,255,0.06)')
         st.plotly_chart(fig_h, use_container_width=True)
 
@@ -358,11 +358,11 @@ with tab_ger:
         fig_p.add_hline(y=80, line_dash='dash', line_color='rgba(245,158,11,.4)', yref='y2',
                         annotation_text='80%', annotation_position='right')
         fig_p.update_layout(**PT, height=320, barmode='group',
-            yaxis=dict(gridcolor='rgba(255,255,255,0.06)', title='OMs'),
             yaxis2=dict(overlaying='y', side='right', range=[0,110],
                         ticksuffix='%', gridcolor='rgba(0,0,0,0)', title='% Acumulado'),
             legend=dict(orientation='h', y=1.1, font_size=10),
             xaxis=dict(tickangle=-35, tickfont_size=9))
+        fig_p.update_yaxes(gridcolor='rgba(255,255,255,0.06)', title='OMs', secondary_y=False)
         st.plotly_chart(fig_p, use_container_width=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -480,8 +480,9 @@ with tab_op:
             fig_esp.add_bar(name='Faria Lima', x=all_sts, y=[fl[fl['status'].apply(norm_s)==s].shape[0] for s in all_sts], marker_color='rgba(245,158,11,.8)', text=[fl[fl['status'].apply(norm_s)==s].shape[0] for s in all_sts], textposition='outside')
             fig_esp.add_bar(name='Klabin', x=all_sts, y=[kl[kl['status'].apply(norm_s)==s].shape[0] for s in all_sts], marker_color='rgba(139,92,246,.8)', text=[kl[kl['status'].apply(norm_s)==s].shape[0] for s in all_sts], textposition='outside')
             fig_esp.update_layout(**PT, barmode='group', height=220, showlegend=True,
-                legend=dict(font_size=10, orientation='h', x=0, y=1.1),
-                xaxis=dict(tickfont_size=11), yaxis=dict(gridcolor='rgba(255,255,255,0.06)'))
+                legend=dict(font_size=10, orientation='h', x=0, y=1.1))
+            fig_esp.update_yaxes(gridcolor='rgba(255,255,255,0.06)')
+            fig_esp.update_xaxes(tickfont_size=11)
             st.plotly_chart(fig_esp, use_container_width=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -518,8 +519,8 @@ with tab_prod:
                          labels={'mantenedor':'','n':'OMs'})
         fig_man.update_traces(textposition='outside', textfont_size=11, marker_line_width=0)
         fig_man.update_layout(**PT, showlegend=False, coloraxis_showscale=False,
-                              height=max(280, len(by_man.head(15))*28),
-                              yaxis=dict(gridcolor='rgba(0,0,0,0)', tickfont_size=11))
+                              height=max(280, len(by_man.head(15))*28))
+        fig_man.update_yaxes(gridcolor='rgba(0,0,0,0)', tickfont_size=11)
         fig_man.update_xaxes(gridcolor='rgba(255,255,255,0.06)')
         st.plotly_chart(fig_man, use_container_width=True)
 
@@ -531,8 +532,8 @@ with tab_prod:
                                 color='lt', color_continuous_scale=[[0,'#10b981'],[0.5,'#f59e0b'],[1,'#ef4444']])
             fig_lt_man.update_traces(textposition='outside', textfont_size=10, marker_line_width=0)
             fig_lt_man.update_layout(**PT, showlegend=False, coloraxis_showscale=False,
-                                     height=max(220, len(by_man.head(12))*24),
-                                     yaxis=dict(gridcolor='rgba(0,0,0,0)', tickfont_size=10))
+                                     height=max(220, len(by_man.head(12))*24))
+            fig_lt_man.update_yaxes(gridcolor='rgba(0,0,0,0)', tickfont_size=10)
             fig_lt_man.update_xaxes(gridcolor='rgba(255,255,255,0.06)')
             st.plotly_chart(fig_lt_man, use_container_width=True)
 
@@ -546,8 +547,8 @@ with tab_prod:
                         color='lead_time', color_continuous_scale=[[0,'#10b981'],[0.5,'#f59e0b'],[1,'#ef4444']])
         fig_lt.update_traces(textposition='outside', textfont_size=10, marker_line_width=0)
         fig_lt.update_layout(**PT, showlegend=False, coloraxis_showscale=False,
-                             height=max(280, len(by_uni_lt)*28),
-                             yaxis=dict(gridcolor='rgba(0,0,0,0)', tickfont_size=10))
+                             height=max(280, len(by_uni_lt)*28))
+        fig_lt.update_yaxes(gridcolor='rgba(0,0,0,0)', tickfont_size=10)
         fig_lt.update_xaxes(gridcolor='rgba(255,255,255,0.06)')
         st.plotly_chart(fig_lt, use_container_width=True)
 
