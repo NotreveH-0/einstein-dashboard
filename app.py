@@ -307,8 +307,8 @@ with tab_ger:
             fig = px.line(daily, x='data', y='n', markers=True, labels={'data':'','n':'OMs'},
                           color_discrete_sequence=['#3b82f6'])
             fig.update_traces(line_width=2, marker_size=4, fill='tozeroy', fillcolor='rgba(59,130,246,.07)')
-            fig.update_layout(**PT, height=220, title="Evolução Diária de Fechamentos",
-                              yaxis=dict(gridcolor='rgba(255,255,255,0.06)', range=[0, d_max*1.25]))
+            fig.update_layout(**PT, height=220, title="Evolução Diária de Fechamentos")
+            fig.update_yaxes(range=[0, d_max*1.25])
             st.plotly_chart(fig, use_container_width=True)
 
     with col_b:
@@ -321,8 +321,8 @@ with tab_ger:
             colors_w[-1] = 'rgba(16,185,129,.9)'
             fig2 = px.bar(weekly, x='semana', y='n', labels={'semana':'','n':'OMs'})
             fig2.update_traces(marker_color=colors_w, marker_line_width=0)
-            fig2.update_layout(**PT, height=220, title="Produção Semanal", showlegend=False,
-                               yaxis=dict(gridcolor='rgba(255,255,255,0.06)', range=[0, w_max*1.25]))
+            fig2.update_layout(**PT, height=220, title="Produção Semanal", showlegend=False)
+            fig2.update_yaxes(range=[0, w_max*1.25])
             fig2.update_xaxes(tickformat='%d/%m', tickangle=-30)
             st.plotly_chart(fig2, use_container_width=True)
 
@@ -440,8 +440,8 @@ with tab_op:
                 colors_m = ['rgba(245,158,11,.5)']*len(monthly); colors_m[-1]='rgba(245,158,11,.9)'
                 fig_m = px.bar(monthly, x='mes', y='n', labels={'mes':'','n':'OMs'})
                 fig_m.update_traces(marker_color=colors_m, marker_line_width=0, text=monthly['n'], textposition='outside')
-                fig_m.update_layout(**PT, height=220, title="Produção Mensal", showlegend=False,
-                                    yaxis=dict(gridcolor='rgba(255,255,255,0.06)', range=[0,m_max*1.3]))
+                fig_m.update_layout(**PT, height=220, title="Produção Mensal", showlegend=False)
+                fig_m.update_yaxes(range=[0,m_max*1.3])
                 fig_m.update_xaxes(tickformat='%b/%Y', tickangle=-30)
                 st.plotly_chart(fig_m, use_container_width=True)
     with cs2:
