@@ -297,14 +297,15 @@ for row_kpis in [kpis[:4], kpis[4:]]:
 # ── PAINEL DE SITUAÇÃO ────────────────────────────────────────────────────────
 st.markdown('<div class="sec">Situação Geral das OMs</div>', unsafe_allow_html=True)
 
-all_f = df_all.copy()  # usa todos os dados sem filtro de status para o painel
-fechadas_all  = all_f[all_f['status'].apply(is_closed)]
-pendentes_all = all_f[~all_f['status'].apply(is_closed) &
-                       all_f['status'].apply(lambda s: classify_status(s) == 'pendente')]
-andamento_all = all_f[~all_f['status'].apply(is_closed) &
-                       all_f['status'].apply(lambda s: classify_status(s) == 'andamento')]
-abertas_hj    = all_f[all_f['data_abertura'].dt.date == today] if not all_f['data_abertura'].isna().all() else pd.DataFrame()
-total_all     = len(all_f)
+# Painel usa df filtrado (respeita unidade, mantenedor, período)
+panel_df = df.copy()
+fechadas_all  = panel_df[panel_df['status'].apply(is_closed)]
+pendentes_all = panel_df[~panel_df['status'].apply(is_closed) &
+                          panel_df['status'].apply(lambda s: classify_status(s) == 'pendente')]
+andamento_all = panel_df[~panel_df['status'].apply(is_closed) &
+                          panel_df['status'].apply(lambda s: classify_status(s) == 'andamento')]
+abertas_hj    = panel_df[panel_df['data_abertura'].dt.date == today] if not panel_df['data_abertura'].isna().all() else pd.DataFrame()
+total_all     = len(panel_df)
 pct = lambda n: f"{n/total_all*100:.0f}% do total" if total_all else "0%"
 
 c1, c2, c3, c4, c5 = st.columns([1,1,1,1,1.5])
@@ -338,7 +339,7 @@ with c5:
     st.plotly_chart(fig_sit, use_container_width=True)
 
 # Breakdown por status
-by_st = all_f.groupby('status').size().reset_index(name='n').sort_values('n', ascending=False)
+by_st = panel_df.groupby('status').size().reset_index(name='n').sort_values('n', ascending=False)
 color_map = {'fechada':'rgba(16,185,129,.15)','andamento':'rgba(245,158,11,.15)','pendente':'rgba(239,68,68,.15)'}
 text_map  = {'fechada':'#34d399','andamento':'#fbbf24','pendente':'#f87171'}
 chips = ''
@@ -382,8 +383,8 @@ with c2:
     st.plotly_chart(f2, use_container_width=True)
 
 # ── UNIDADES ESPECIAIS: FARIA LIMA & KLABIN ───────────────────────────────────
-fl_data = df_all[df_all['unidade'].str.upper().str.contains('FARIA LIMA', na=False)]
-kl_data = df_all[df_all['unidade'].str.upper().str.contains('KLABIN', na=False)]
+fl_data = df[df['unidade'].str.upper().str.contains('FARIA LIMA', na=False)]
+kl_data = df[df['unidade'].str.upper().str.contains('KLABIN', na=False)]
 
 if not fl_data.empty or not kl_data.empty:
     st.markdown('<div class="sec">⭐ Unidades Especiais — Faria Lima & Klabin &nbsp;<span style="background:rgba(245,158,11,.15);color:#fbbf24;font-size:10px;padding:2px 8px;border-radius:10px">Liderança Local</span></div>', unsafe_allow_html=True)
