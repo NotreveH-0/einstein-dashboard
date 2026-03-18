@@ -135,6 +135,8 @@ def load(url):
     out['data_fechamento'] = pd.to_datetime(df[mp['df']], dayfirst=True, errors='coerce') if mp['df'] else pd.NaT
     mask = out['om'].str.strip().ne('') | out['status'].str.strip().ne('') | out['unidade'].str.strip().ne('')
     out = out[mask].copy()
+    # data_ref: data de fechamento se existir, senão data de abertura (para OMs como "Apontamento concluído")
+    out['data_ref'] = out['data_fechamento'].fillna(out['data_abertura'])
     out['lead_time'] = out.apply(lead_time, axis=1)
     return out
 
@@ -185,7 +187,7 @@ with st.sidebar:
 
     # Apply quick filter to date range
     qf = st.session_state.get('qf', None)
-    datas = df_all['data_fechamento'].dropna()
+    datas = df_all['data_ref'].dropna()
     default_min = datas.min().date() if not datas.empty else today - timedelta(30)
     default_max = datas.max().date() if not datas.empty else today
 
@@ -252,10 +254,9 @@ df = df_all.copy()
 if status_sel: df = df[df['status'].isin(status_sel)]
 if uni_sel != "Todas": df = df[df['unidade'] == uni_sel]
 if man_sel != "Todos": df = df[df['mantenedor'] == man_sel]
-# Filtro de período: usa data_fechamento; se nula, usa data_abertura
-if not df['data_fechamento'].isna().all():
-    ref_date = df['data_fechamento'].fillna(df['data_abertura'])
-    df = df[(ref_date.dt.date >= d_from) & (ref_date.dt.date <= d_to)]
+# Filtro de período usa data_ref (data_fechamento se existir, senão data_abertura)
+if not df['data_ref'].isna().all():
+    df = df[(df['data_ref'].dt.date >= d_from) & (df['data_ref'].dt.date <= d_to)]
 
 closed = df[df['status'].apply(is_closed)].copy()
 if closed.empty: closed = df.copy()
@@ -309,7 +310,7 @@ with tab_ger:
     # Evolução diária + semanal
     col_a, col_b = st.columns([3,2])
     with col_a:
-        daily = closed[closed['data_fechamento'].notna()].groupby(closed['data_fechamento'].dt.date).size().reset_index(name='n')
+        daily = closed[closed['data_ref'].notna()].groupby(closed['data_ref'].dt.date).size().reset_index(name='n')
         daily.columns = ['data','n']
         if not daily.empty:
             d_max = daily['n'].max()
@@ -321,8 +322,8 @@ with tab_ger:
             st.plotly_chart(fig, use_container_width=True, key="chart_1")
 
     with col_b:
-        closed2 = closed[closed['data_fechamento'].notna()].copy()
-        closed2['semana'] = closed2['data_fechamento'].dt.to_period('W').dt.start_time
+        closed2 = closed[closed['data_ref'].notna()].copy()
+        closed2['semana'] = closed2['data_ref'].dt.to_period('W').dt.start_time
         weekly = closed2.groupby('semana').size().reset_index(name='n')
         if not weekly.empty:
             w_max = weekly['n'].max()
@@ -374,42 +375,44 @@ with tab_ger:
 # ══════════════════════════════════════════════════════════════════════════════
 with tab_op:
     all_df = df.copy()
-    has_dt = not all_df['data_fechamento'].isna().all()
+    has_dt = not all_df['data_ref'].isna().all()
     has_da = not all_df['data_abertura'].isna().all()
 
-    fech_hj  = len(closed[closed['data_fechamento'].dt.date == today]) if has_dt else 0
-    ab_hj    = len(all_df[all_df['data_abertura'].dt.date == today]) if has_da else 0
+    # Fechadas hoje: usa data_ref (inclui Apontamento concluído)
+    fech_hj  = len(closed[closed['data_ref'].dt.date == today]) if has_dt else 0
+    # Abertas hoje: OMs com data_abertura = hoje (independente de status)
+    ab_hj    = len(df_all[df_all['data_abertura'].dt.date == today]) if has_da else 0
+    # Pendentes e Em andamento: status não fechados no df filtrado
     andamento = len(all_df[all_df['status'].apply(lambda s: classify_status(s) == 'andamento')])
     pendentes = len(all_df[all_df['status'].apply(lambda s: classify_status(s) == 'pendente')])
     total_all = len(all_df) or 1
-    semana    = len(closed[closed['data_fechamento'].dt.date >= week_start]) if has_dt else 0
-    mes       = len(closed[closed['data_fechamento'].dt.date >= month_start]) if has_dt else 0
-    sem_ant   = len(closed[closed['data_fechamento'].dt.date.between(pw_start, week_start-timedelta(1))]) if has_dt else 0
-    mes_ant   = len(closed[closed['data_fechamento'].dt.date.between(pm_start, pm_end)]) if has_dt else 0
+    semana    = len(closed[closed['data_ref'].dt.date >= week_start]) if has_dt else 0
+    mes       = len(closed[closed['data_ref'].dt.date >= month_start]) if has_dt else 0
+    sem_ant   = len(closed[closed['data_ref'].dt.date.between(pw_start, week_start-timedelta(1))]) if has_dt else 0
+    mes_ant   = len(closed[closed['data_ref'].dt.date.between(pm_start, pm_end)]) if has_dt else 0
+
+    # Alerta divergência — só para OMs que têm data_fechamento real
+    if not closed.empty and not closed['data_ref'].isna().all():
+        freq = closed['data_ref'].dt.date.value_counts()
+        if not freq.empty:
+            esp = freq.idxmax()
+            fora = closed[closed['data_ref'].dt.date != esp]
+            if not fora.empty:
+                st.markdown(f'<div class="alert">⚠ <strong>{len(fora)} OM(s)</strong> com data fora '
+                            f'do padrão esperado ({esp.strftime("%d/%m/%Y")}). '
+                            f'Verifique na aba Detalhamento.</div>', unsafe_allow_html=True)
 
     c1,c2,c3,c4 = st.columns(4)
     for col, lbl, val, sub, acc in [
-        (c1,"✅ Fechadas Hoje", fech_hj, today.strftime('%d/%m/%Y'), "#10b981"),
-        (c2,"📅 Abertas Hoje", ab_hj, today.strftime('%d/%m/%Y'), "#3b82f6"),
-        (c3,"🔄 Em Andamento", andamento, f"{andamento/total_all*100:.0f}% do total", "#f59e0b"),
-        (c4,"⏳ Pendentes", pendentes, f"{pendentes/total_all*100:.0f}% do total", "#ef4444"),
+        (c1,"✅ Fechadas Hoje",  fech_hj,  today.strftime('%d/%m/%Y'),                    "#10b981"),
+        (c2,"📅 Abertas Hoje",  ab_hj,    today.strftime('%d/%m/%Y'),                    "#3b82f6"),
+        (c3,"🔄 Em Andamento",  andamento, f"{andamento/total_all*100:.0f}% do total",   "#f59e0b"),
+        (c4,"⏳ Pendentes",     pendentes, f"{pendentes/total_all*100:.0f}% do total",   "#ef4444"),
     ]:
         with col:
-            color = acc
             st.markdown(f'<div class="kpi" style="--a:{acc}"><div class="kpi-l">{lbl}</div>'
-                        f'<div class="kpi-v" style="color:{color}">{val}</div>'
+                        f'<div class="kpi-v" style="color:{acc}">{val}</div>'
                         f'<div class="kpi-s">{sub}</div></div>', unsafe_allow_html=True)
-
-    # Alerta divergência
-    if has_dt and not closed.empty:
-        freq = closed['data_fechamento'].dt.date.value_counts()
-        if not freq.empty:
-            esp = freq.idxmax()
-            fora = closed[closed['data_fechamento'].dt.date != esp]
-            if not fora.empty:
-                st.markdown(f'<div class="alert">⚠ <strong>{len(fora)} OM(s)</strong> com data de fechamento '
-                            f'fora do padrão esperado ({esp.strftime("%d/%m/%Y")}). '
-                            f'Verifique na aba Detalhamento.</div>', unsafe_allow_html=True)
 
     # Volume semana e mês com delta
     cv1, cv2 = st.columns(2)
@@ -450,7 +453,7 @@ with tab_op:
         # Mensal
         if has_dt:
             cm = closed.copy()
-            cm['mes'] = closed['data_fechamento'].dt.to_period('M').dt.start_time
+            cm['mes'] = closed['data_ref'].dt.to_period('M').dt.start_time
             monthly = cm.groupby('mes').size().reset_index(name='n')
             if not monthly.empty:
                 m_max = monthly['n'].max()
@@ -573,8 +576,8 @@ with tab_prod:
         st.plotly_chart(fig_lt, use_container_width=True, key="chart_10")
 
         # Lead time evolução diária
-        lt_day = (closed[closed['data_fechamento'].notna() & closed['lead_time'].notna()]
-                  .groupby(closed['data_fechamento'].dt.date)['lead_time'].mean().round(1).reset_index())
+        lt_day = (closed[closed['data_ref'].notna() & closed['lead_time'].notna()]
+                  .groupby(closed['data_ref'].dt.date)['lead_time'].mean().round(1).reset_index())
         lt_day.columns = ['data','lt']
         if not lt_day.empty:
             fig_lt_d = px.line(lt_day, x='data', y='lt', markers=True,
@@ -590,8 +593,8 @@ with tab_prod:
 with tab_det:
     # Expected close date for flags
     exp_date = None
-    if not closed.empty and not closed['data_fechamento'].isna().all():
-        exp_date = closed['data_fechamento'].dt.date.value_counts().idxmax()
+    if not closed.empty and not closed['data_ref'].isna().all():
+        exp_date = closed['data_ref'].dt.date.value_counts().idxmax()
 
     srch = st.text_input("", placeholder="🔍  Buscar por OM, unidade, mantenedor, status...", label_visibility="collapsed")
     col_cb1, col_cb2 = st.columns([2,1])
@@ -610,8 +613,8 @@ with tab_det:
     if exp_date:
         tbl = tbl.copy()
         tbl['alerta'] = tbl.apply(lambda r: '⚠ Fora do padrão'
-                                  if is_closed(r['status']) and pd.notna(r['data_fechamento'])
-                                  and r['data_fechamento'].date() != exp_date else '', axis=1)
+                                  if is_closed(r['status']) and pd.notna(r['data_ref'])
+                                  and r['data_ref'].date() != exp_date else '', axis=1)
         if only_alert:
             tbl = tbl[tbl['alerta'] == '⚠ Fora do padrão']
 
