@@ -316,7 +316,7 @@ with tab_ger:
             fig.update_traces(line_width=2, marker_size=4, fill='tozeroy', fillcolor='rgba(59,130,246,.07)')
             fig.update_layout(**PT, height=220, title="Evolução Diária de Fechamentos")
             fig.update_yaxes(range=[0, d_max*1.25])
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key="chart_1")
 
     with col_b:
         closed2 = closed[closed['data_fechamento'].notna()].copy()
@@ -331,7 +331,7 @@ with tab_ger:
             fig2.update_layout(**PT, height=220, title="Produção Semanal", showlegend=False)
             fig2.update_yaxes(range=[0, w_max*1.25])
             fig2.update_xaxes(tickformat='%d/%m', tickangle=-30)
-            st.plotly_chart(fig2, use_container_width=True)
+            st.plotly_chart(fig2, use_container_width=True, key="chart_2")
 
     # Pareto
     st.markdown('<div class="sec">Top 10 Unidades — Pareto</div>', unsafe_allow_html=True)
@@ -349,7 +349,7 @@ with tab_ger:
         fig_h.update_layout(**PT, showlegend=False, coloraxis_showscale=False, height=320)
         fig_h.update_yaxes(gridcolor='rgba(0,0,0,0)', tickfont_size=10)
         fig_h.update_xaxes(gridcolor=GC)
-        st.plotly_chart(fig_h, use_container_width=True)
+        st.plotly_chart(fig_h, use_container_width=True, key="chart_3")
 
     with col_p2:
         # Participação % acumulada (Pareto simples - sem eixo duplo)
@@ -365,7 +365,7 @@ with tab_ger:
         # Linha 80%
         fig_acc.add_hline(y=80, line_dash='dash', line_color='rgba(245,158,11,.5)',
                           annotation_text='80%')
-        st.plotly_chart(fig_acc, use_container_width=True)
+        st.plotly_chart(fig_acc, use_container_width=True, key="chart_4")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2: OPERACIONAL
@@ -424,6 +424,8 @@ with tab_op:
 
     # Status breakdown + donut
     st.markdown('<div class="sec">Distribuição por Status</div>', unsafe_allow_html=True)
+    color_map = {'fechada':'rgba(16,185,129,.15)','andamento':'rgba(245,158,11,.15)','pendente':'rgba(239,68,68,.15)'}
+    text_map  = {'fechada':'#34d399','andamento':'#fbbf24','pendente':'#f87171'}
     # Status breakdown — agrupa todos fechados em "Fechadas"
     st_map = {}
     for _, row in all_df.iterrows():
@@ -456,7 +458,7 @@ with tab_op:
                 fig_m.update_layout(**PT, height=220, title="Produção Mensal", showlegend=False)
                 fig_m.update_yaxes(range=[0,m_max*1.3])
                 fig_m.update_xaxes(tickformat='%b/%Y', tickangle=-30)
-                st.plotly_chart(fig_m, use_container_width=True)
+                st.plotly_chart(fig_m, use_container_width=True, key="chart_5")
     with cs2:
         fig_d = go.Figure(go.Pie(
             labels=['Fechadas','Em Andamento','Pendentes'],
@@ -465,7 +467,7 @@ with tab_op:
             textinfo='percent', textfont_size=11))
         fig_d.update_layout(**PT, height=220, showlegend=True,
             legend=dict(font_size=10, orientation='h', x=0, y=-0.1))
-        st.plotly_chart(fig_d, use_container_width=True)
+        st.plotly_chart(fig_d, use_container_width=True, key="chart_6")
 
     # Especiais
     fl = df[df['unidade'].str.upper().str.contains('FARIA LIMA', na=False)]
@@ -496,7 +498,7 @@ with tab_op:
                 legend=dict(font_size=10, orientation='h', x=0, y=1.1))
             fig_esp.update_yaxes(gridcolor=GC)
             fig_esp.update_xaxes(tickfont_size=11)
-            st.plotly_chart(fig_esp, use_container_width=True)
+            st.plotly_chart(fig_esp, use_container_width=True, key="chart_7")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 3: PRODUTIVIDADE
@@ -535,7 +537,7 @@ with tab_prod:
                               height=max(280, len(by_man.head(15))*28))
         fig_man.update_yaxes(gridcolor='rgba(0,0,0,0)', tickfont_size=11)
         fig_man.update_xaxes(gridcolor=GC)
-        st.plotly_chart(fig_man, use_container_width=True)
+        st.plotly_chart(fig_man, use_container_width=True, key="chart_8")
 
         # Lead time por mantenedor
         if not by_man.empty:
@@ -548,7 +550,7 @@ with tab_prod:
                                      height=max(220, len(by_man.head(12))*24))
             fig_lt_man.update_yaxes(gridcolor='rgba(0,0,0,0)', tickfont_size=10)
             fig_lt_man.update_xaxes(gridcolor=GC)
-            st.plotly_chart(fig_lt_man, use_container_width=True)
+            st.plotly_chart(fig_lt_man, use_container_width=True, key="chart_9")
 
     with cp2:
         st.markdown('<div class="sec">Lead Time por Unidade (dias)</div>', unsafe_allow_html=True)
@@ -563,7 +565,7 @@ with tab_prod:
                              height=max(280, len(by_uni_lt)*28))
         fig_lt.update_yaxes(gridcolor='rgba(0,0,0,0)', tickfont_size=10)
         fig_lt.update_xaxes(gridcolor=GC)
-        st.plotly_chart(fig_lt, use_container_width=True)
+        st.plotly_chart(fig_lt, use_container_width=True, key="chart_10")
 
         # Lead time evolução diária
         lt_day = (closed[closed['data_fechamento'].notna() & closed['lead_time'].notna()]
@@ -575,7 +577,7 @@ with tab_prod:
             fig_lt_d.update_traces(line_width=2, marker_size=4, fill='tozeroy',
                                    fillcolor='rgba(139,92,246,.07)')
             fig_lt_d.update_layout(**PT, height=200, title="Lead Time Médio Diário")
-            st.plotly_chart(fig_lt_d, use_container_width=True)
+            st.plotly_chart(fig_lt_d, use_container_width=True, key="chart_11")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 4: DETALHAMENTO
