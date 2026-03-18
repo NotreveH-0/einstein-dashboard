@@ -352,9 +352,19 @@ with tab_ger:
         st.plotly_chart(fig_h, use_container_width=True)
 
     with col_p2:
-        # Participação % acumulada (Pareto simples - sem eixo duplo)
-        by_uni2 = by_uni.copy()
-        fig_acc = px.bar(by_uni2, x='unidade', y='pct', text='pct',
+        col_p1, col_p2 = st.columns([1, 1])
+    with col_p1:
+        fig_h = px.bar(by_uni.iloc[::-1], x='n', y='unidade', orientation='h', text='n',
+                       color='n', color_continuous_scale=[[0,'#1e3a5f'],[1,'#3b82f6']],
+                       labels={'unidade':'','n':'OMs'})
+        fig_h.update_traces(textposition='outside', textfont_size=11, marker_line_width=0)
+        fig_h.update_layout(**PT, showlegend=False, coloraxis_showscale=False, height=320)
+        fig_h.update_yaxes(gridcolor='rgba(0,0,0,0)', tickfont_size=10)
+        fig_h.update_xaxes(gridcolor=GC)
+        st.plotly_chart(fig_h, use_container_width=True)
+
+    with col_p2:
+        fig_acc = px.bar(by_uni, x='unidade', y='pct', text='pct',
                          color='pct', color_continuous_scale=[[0,'#1e3a5f'],[1,'#f59e0b']],
                          labels={'unidade':'','pct':'% do total'})
         fig_acc.update_traces(texttemplate='%{text}%', textposition='outside',
@@ -362,27 +372,9 @@ with tab_ger:
         fig_acc.update_layout(**PT, showlegend=False, coloraxis_showscale=False, height=320)
         fig_acc.update_xaxes(tickangle=-35, tickfont_size=9, gridcolor='rgba(0,0,0,0)')
         fig_acc.update_yaxes(gridcolor=GC, ticksuffix='%')
-        # Linha 80%
         fig_acc.add_hline(y=80, line_dash='dash', line_color='rgba(245,158,11,.5)',
                           annotation_text='80%')
         st.plotly_chart(fig_acc, use_container_width=True)
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 2: OPERACIONAL
-# ══════════════════════════════════════════════════════════════════════════════
-with tab_op:
-    all_df = df.copy()
-    has_dt = not all_df['data_fechamento'].isna().all()
-    has_da = not all_df['data_abertura'].isna().all()
-
-    fech_hj  = len(closed[closed['data_fechamento'].dt.date == today]) if has_dt else 0
-    ab_hj    = len(all_df[all_df['data_abertura'].dt.date == today]) if has_da else 0
-    andamento = len(all_df[all_df['status'].apply(lambda s: classify_status(s) == 'andamento')])
-    pendentes = len(all_df[all_df['status'].apply(lambda s: classify_status(s) == 'pendente')])
-    total_all = len(all_df) or 1
-    semana    = len(closed[closed['data_fechamento'].dt.date >= week_start]) if has_dt else 0
-    mes       = len(closed[closed['data_fechamento'].dt.date >= month_start]) if has_dt else 0
-    sem_ant   = len(closed[closed['data_fechamento'].dt.date.between(pw_start, week_start-timedelta(1))]) if has_dt else 0
     mes_ant   = len(closed[closed['data_fechamento'].dt.date.between(pm_start, pm_end)]) if has_dt else 0
 
     c1,c2,c3,c4 = st.columns(4)
