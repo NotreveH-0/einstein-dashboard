@@ -342,7 +342,6 @@ with tab_ger:
 
     col_p1, col_p2 = st.columns([1, 1])
     with col_p1:
-        # Horizontal bars
         fig_h = px.bar(by_uni.iloc[::-1], x='n', y='unidade', orientation='h', text='n',
                        color='n', color_continuous_scale=[[0,'#1e3a5f'],[1,'#3b82f6']],
                        labels={'unidade':'','n':'OMs'})
@@ -353,28 +352,20 @@ with tab_ger:
         st.plotly_chart(fig_h, use_container_width=True)
 
     with col_p2:
-        # Pareto chart
-        fig_p = go.Figure()
-        fig_p.add_bar(x=by_uni['unidade'], y=by_uni['n'],
-                      marker_color=[COLORS[i % len(COLORS)] for i in range(len(by_uni))],
-                      name='OMs', yaxis='y')
-        fig_p.add_scatter(x=by_uni['unidade'], y=by_uni['acc'],
-                          mode='lines+markers', name='% Acumulado',
-                          line=dict(color='#f59e0b', width=2),
-                          marker=dict(size=5, color='#f59e0b'), yaxis='y2')
-        fig_p.add_hline(y=80, line_dash='dash', line_color='rgba(245,158,11,.4)', yref='y2',
-                        annotation_text='80%', annotation_position='right')
-        fig_p.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(family="Inter,sans-serif", color="#e8eaf0", size=12),
-            margin=dict(l=10, r=10, t=30, b=10),
-            height=320, barmode='overlay',
-            yaxis2=dict(overlaying='y', side='right', range=[0,110],
-                        ticksuffix='%', gridcolor='rgba(0,0,0,0)', title='% Acumulado'),
-            legend=dict(orientation='h', y=1.1, font_size=10))
-        fig_p.update_xaxes(gridcolor=GC, tickangle=-35, tickfont_size=9)
-        fig_p.update_yaxes(gridcolor=GC, title='OMs')
-        st.plotly_chart(fig_p, use_container_width=True)
+        # Participação % acumulada (Pareto simples - sem eixo duplo)
+        by_uni2 = by_uni.copy()
+        fig_acc = px.bar(by_uni2, x='unidade', y='pct', text='pct',
+                         color='pct', color_continuous_scale=[[0,'#1e3a5f'],[1,'#f59e0b']],
+                         labels={'unidade':'','pct':'% do total'})
+        fig_acc.update_traces(texttemplate='%{text}%', textposition='outside',
+                              textfont_size=10, marker_line_width=0)
+        fig_acc.update_layout(**PT, showlegend=False, coloraxis_showscale=False, height=320)
+        fig_acc.update_xaxes(tickangle=-35, tickfont_size=9, gridcolor='rgba(0,0,0,0)')
+        fig_acc.update_yaxes(gridcolor=GC, ticksuffix='%')
+        # Linha 80%
+        fig_acc.add_hline(y=80, line_dash='dash', line_color='rgba(245,158,11,.5)',
+                          annotation_text='80%')
+        st.plotly_chart(fig_acc, use_container_width=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2: OPERACIONAL
