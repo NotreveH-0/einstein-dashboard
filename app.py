@@ -382,10 +382,13 @@ with tab_op:
     fech_hj  = len(closed[closed['data_ref'].dt.date == today]) if has_dt else 0
     # Abertas hoje: OMs com data_abertura = hoje (independente de status)
     ab_hj    = len(df_all[df_all['data_abertura'].dt.date == today]) if has_da else 0
-    # Pendentes e Em andamento: status não fechados no df filtrado
-    andamento = len(all_df[all_df['status'].apply(lambda s: classify_status(s) == 'andamento')])
-    pendentes = len(all_df[all_df['status'].apply(lambda s: classify_status(s) == 'pendente')])
-    total_all = len(all_df) or 1
+    # Pendentes e Em andamento: status não fechados no TOTAL da planilha (df_all sem filtro de status)
+    df_todos = df_all.copy()
+    if uni_sel != "Todas": df_todos = df_todos[df_todos['unidade'] == uni_sel]
+    if man_sel != "Todos": df_todos = df_todos[df_todos['mantenedor'] == man_sel]
+    andamento = len(df_todos[df_todos['status'].apply(lambda s: classify_status(s) == 'andamento')])
+    pendentes = len(df_todos[df_todos['status'].apply(lambda s: classify_status(s) == 'pendente')])
+    total_all = len(df_todos) or 1
     semana    = len(closed[closed['data_ref'].dt.date >= week_start]) if has_dt else 0
     mes       = len(closed[closed['data_ref'].dt.date >= month_start]) if has_dt else 0
     sem_ant   = len(closed[closed['data_ref'].dt.date.between(pw_start, week_start-timedelta(1))]) if has_dt else 0
@@ -431,9 +434,9 @@ with tab_op:
     st.markdown('<div class="sec">Distribuição por Status</div>', unsafe_allow_html=True)
     color_map = {'fechada':'rgba(16,185,129,.15)','andamento':'rgba(245,158,11,.15)','pendente':'rgba(239,68,68,.15)'}
     text_map  = {'fechada':'#34d399','andamento':'#fbbf24','pendente':'#f87171'}
-    # Status breakdown — agrupa todos fechados em "Fechadas"
+    # Status breakdown — usa todos os status sem filtro de status (mostra quadro completo)
     st_map = {}
-    for _, row in all_df.iterrows():
+    for _, row in df_todos.iterrows():
         k = 'Fechadas' if is_closed(row['status']) else (row['status'] or '—')
         st_map[k] = st_map.get(k, 0) + 1
     st_sorted = sorted(st_map.items(), key=lambda x: (x[0]!='Fechadas', -x[1]))
