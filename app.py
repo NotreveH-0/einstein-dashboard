@@ -252,8 +252,10 @@ df = df_all.copy()
 if status_sel: df = df[df['status'].isin(status_sel)]
 if uni_sel != "Todas": df = df[df['unidade'] == uni_sel]
 if man_sel != "Todos": df = df[df['mantenedor'] == man_sel]
+# Filtro de período: usa data_fechamento; se nula, usa data_abertura
 if not df['data_fechamento'].isna().all():
-    df = df[(df['data_fechamento'].dt.date >= d_from) & (df['data_fechamento'].dt.date <= d_to)]
+    ref_date = df['data_fechamento'].fillna(df['data_abertura'])
+    df = df[(ref_date.dt.date >= d_from) & (ref_date.dt.date <= d_to)]
 
 closed = df[df['status'].apply(is_closed)].copy()
 if closed.empty: closed = df.copy()
@@ -469,9 +471,12 @@ with tab_op:
             legend=dict(font_size=10, orientation='h', x=0, y=-0.1))
         st.plotly_chart(fig_d, use_container_width=True, key="chart_6")
 
-    # Especiais
-    fl = df[df['unidade'].str.upper().str.contains('FARIA LIMA', na=False)]
-    kl = df[df['unidade'].str.upper().str.contains('KLABIN', na=False)]
+    # Especiais — usa df_all filtrado só por unidade/mantenedor, não por período
+    df_esp = df_all.copy()
+    if uni_sel != "Todas": df_esp = df_esp[df_esp['unidade'] == uni_sel]
+    if man_sel != "Todos": df_esp = df_esp[df_esp['mantenedor'] == man_sel]
+    fl = df_esp[df_esp['unidade'].str.upper().str.contains('FARIA LIMA', na=False)]
+    kl = df_esp[df_esp['unidade'].str.upper().str.contains('KLABIN', na=False)]
     if not fl.empty or not kl.empty:
         st.markdown('<div class="sec">⭐ Faria Lima & Klabin <span style="background:rgba(245,158,11,.15);color:#fbbf24;font-size:10px;padding:2px 8px;border-radius:10px;margin-left:8px">Liderança Local</span></div>', unsafe_allow_html=True)
         ce1, ce2, ce3 = st.columns([1,1,2])
