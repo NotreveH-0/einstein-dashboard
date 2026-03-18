@@ -375,24 +375,27 @@ with tab_ger:
 # ══════════════════════════════════════════════════════════════════════════════
 with tab_op:
     all_df = df.copy()
-    has_dt = not all_df['data_ref'].isna().all()
-    has_da = not all_df['data_abertura'].isna().all()
+    has_dt = not df_all['data_ref'].isna().all()
+    has_da = not df_all['data_abertura'].isna().all()
 
-    # Fechadas hoje: usa data_ref (inclui Apontamento concluído)
-    fech_hj  = len(closed[closed['data_ref'].dt.date == today]) if has_dt else 0
-    # Abertas hoje: OMs com data_abertura = hoje (independente de status)
-    ab_hj    = len(df_all[df_all['data_abertura'].dt.date == today]) if has_da else 0
-    # Pendentes e Em andamento: status não fechados no TOTAL da planilha (df_all sem filtro de status)
+    # KPIs de hoje sempre usam df_all (ignoram filtro de período)
+    closed_all = df_all[df_all['status'].apply(is_closed)]
+    fech_hj = len(closed_all[closed_all['data_ref'].dt.date == today]) if has_dt else 0
+    ab_hj   = len(df_all[df_all['data_abertura'].dt.date == today]) if has_da else 0
+
+    # Pendentes e em andamento: todos os status sem filtro de período
     df_todos = df_all.copy()
     if uni_sel != "Todas": df_todos = df_todos[df_todos['unidade'] == uni_sel]
     if man_sel != "Todos": df_todos = df_todos[df_todos['mantenedor'] == man_sel]
     andamento = len(df_todos[df_todos['status'].apply(lambda s: classify_status(s) == 'andamento')])
     pendentes = len(df_todos[df_todos['status'].apply(lambda s: classify_status(s) == 'pendente')])
     total_all = len(df_todos) or 1
-    semana    = len(closed[closed['data_ref'].dt.date >= week_start]) if has_dt else 0
-    mes       = len(closed[closed['data_ref'].dt.date >= month_start]) if has_dt else 0
-    sem_ant   = len(closed[closed['data_ref'].dt.date.between(pw_start, week_start-timedelta(1))]) if has_dt else 0
-    mes_ant   = len(closed[closed['data_ref'].dt.date.between(pm_start, pm_end)]) if has_dt else 0
+
+    # Volume semana/mês usam closed (com filtro de período aplicado)
+    semana  = len(closed[closed['data_ref'].dt.date >= week_start]) if has_dt else 0
+    mes     = len(closed[closed['data_ref'].dt.date >= month_start]) if has_dt else 0
+    sem_ant = len(closed[closed['data_ref'].dt.date.between(pw_start, week_start-timedelta(1))]) if has_dt else 0
+    mes_ant = len(closed[closed['data_ref'].dt.date.between(pm_start, pm_end)]) if has_dt else 0
 
     # Alerta divergência — só para OMs que têm data_fechamento real
     if not closed.empty and not closed['data_ref'].isna().all():
