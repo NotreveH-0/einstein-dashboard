@@ -201,9 +201,16 @@ with st.sidebar:
 
     st.divider()
     st.markdown("#### Filtros")
-    status_opts = sorted(df_all['status'].dropna().unique())
-    closed_def  = [s for s in status_opts if is_closed(s)]
-    status_sel  = st.multiselect("Status", status_opts, default=closed_def or list(status_opts))
+    # Agrupa todos os status fechados em "Fechadas" no filtro
+    status_raw = sorted(df_all['status'].dropna().unique())
+    status_nao_fechados = [s for s in status_raw if not is_closed(s)]
+    status_opts_filtro = ['Fechadas'] + sorted(status_nao_fechados)
+    status_sel_labels = st.multiselect("Status", status_opts_filtro, default=['Fechadas'])
+    # Expande "Fechadas" de volta para os status reais
+    status_sel = []
+    if 'Fechadas' in status_sel_labels:
+        status_sel += [s for s in status_raw if is_closed(s)]
+    status_sel += [s for s in status_sel_labels if s != 'Fechadas']
 
     per = st.date_input("Período (fechamento)", value=(df_min, df_max),
                         min_value=default_min, max_value=default_max)
@@ -422,10 +429,21 @@ with tab_op:
 
     # Status breakdown + donut
     st.markdown('<div class="sec">Distribuição por Status</div>', unsafe_allow_html=True)
-    by_st = all_df.groupby('status').size().reset_index(name='n').sort_values('n', ascending=False)
-    color_map = {'fechada':'rgba(16,185,129,.15)','andamento':'rgba(245,158,11,.15)','pendente':'rgba(239,68,68,.15)'}
-    text_map  = {'fechada':'#34d399','andamento':'#fbbf24','pendente':'#f87171'}
-    chips = ''.join(f"<span style='display:inline-flex;align-items:center;gap:5px;background:{color_map.get(classify_status(r['status']),'rgba(139,146,165,.15)')};border:1px solid {text_map.get(classify_status(r['status']),'#8b92a5')}33;color:{text_map.get(classify_status(r['status']),'#8b92a5')};font-size:11px;padding:3px 9px;border-radius:20px;margin:2px'><strong>{r['n']}</strong> {r['status']}</span>" for _,r in by_st.iterrows())
+    # Status breakdown — agrupa todos fechados em "Fechadas"
+    st_map = {}
+    for _, row in all_df.iterrows():
+        k = 'Fechadas' if is_closed(row['status']) else (row['status'] or '—')
+        st_map[k] = st_map.get(k, 0) + 1
+    st_sorted = sorted(st_map.items(), key=lambda x: (x[0]!='Fechadas', -x[1]))
+    chips = ''.join(
+        f"<span style='display:inline-flex;align-items:center;gap:5px;"
+        f"background:{color_map.get('fechada' if s=='Fechadas' else classify_status(s),'rgba(139,146,165,.15)')};"
+        f"border:1px solid {text_map.get('fechada' if s=='Fechadas' else classify_status(s),'#8b92a5')}33;"
+        f"color:{text_map.get('fechada' if s=='Fechadas' else classify_status(s),'#8b92a5')};"
+        f"font-size:11px;padding:3px 9px;border-radius:20px;margin:2px'>"
+        f"<strong>{n}</strong> {s}</span>"
+        for s, n in st_sorted
+    )
     st.markdown(f"<div style='display:flex;flex-wrap:wrap;margin-bottom:12px'>{chips}</div>", unsafe_allow_html=True)
 
     cs1, cs2 = st.columns([2,1])
@@ -579,6 +597,7 @@ with tab_det:
         only_alert = st.checkbox("Somente com inconsistência de data")
 
     tbl = df.copy()
+    tbl['status_display'] = tbl['status'].apply(lambda s: 'Fechadas' if is_closed(s) else s)
     if srch:
         m = (tbl['om'].str.contains(srch, case=False, na=False) |
              tbl['unidade'].str.contains(srch, case=False, na=False) |
@@ -594,7 +613,7 @@ with tab_det:
         if only_alert:
             tbl = tbl[tbl['alerta'] == '⚠ Fora do padrão']
 
-    tbl_show = tbl[['om','status','unidade','mantenedor','data_abertura','data_fechamento','lead_time'] +
+    tbl_show = tbl[['om','status_display','unidade','mantenedor','data_abertura','data_fechamento','lead_time'] +
                    (['alerta'] if 'alerta' in tbl.columns else [])].copy()
     tbl_show.columns = ['OM','Status','Unidade','Mantenedor','Abertura','Fechamento','Lead Time (d)'] + \
                        (['⚠'] if 'alerta' in tbl.columns else [])
